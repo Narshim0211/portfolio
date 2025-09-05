@@ -33,6 +33,12 @@ enum AppointmentSource {
   import
 }
 
+enum PaymentMode {
+  confirmation_only
+  in_person
+  external_required
+}
+
 model Tenant {
   id            String   @id @default(uuid())
   name          String
@@ -41,6 +47,11 @@ model Tenant {
   brandingJson  Json?
   plan          String?
   createdAt     DateTime @default(now())
+  // Payment settings
+  paymentMode        PaymentMode   @default(confirmation_only)
+  externalPaymentUrl String?
+  paymentTtlSec      Int           @default(900)
+  callbackSecret     String?
   users         User[]
   staff         Staff[]
   services      Service[]
@@ -71,6 +82,7 @@ model Staff {
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   user      User?    @relation(fields: [userId], references: [id])
   timeOff   TimeOff[]
+  businessHours BusinessHours[]
   appts     Appointment[]
 }
 
@@ -114,8 +126,8 @@ model Appointment {
   customerName  String
   customerEmail String
   customerPhone String
-  start         DateTime
-  end           DateTime
+  start         DateTime           @db.Timestamptz(6)
+  end           DateTime           @db.Timestamptz(6)
   status        AppointmentStatus  @default(confirmed)
   source        AppointmentSource  @default(public)
   paymentStatus PaymentStatus      @default(unpaid)

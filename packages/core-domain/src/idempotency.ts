@@ -1,5 +1,10 @@
 import Redis from "ioredis";
 
+/**
+ * Simple idempotency helper backed by Redis. Cache the first successful
+ * response for a given key to safely handle client retries.
+ */
+
 const prefix = "idem:";
 
 export async function getOrSetIdempotent<T>(

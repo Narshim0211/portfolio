@@ -17,7 +17,11 @@
     "db:generate": "npm --workspace packages/data-access run generate"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.8.1",
+    "@typescript-eslint/parser": "^8.8.1",
     "eslint": "^9.6.0",
+    "eslint-plugin-react-hooks": "^5.1.0-rc.0",
+    "@types/node": "^20.11.30",
     "prettier": "^3.3.3",
     "typescript": "^5.5.4"
   }
