@@ -6,6 +6,10 @@ import { getPrisma } from '@salon/data-access';
 // Temporary: tenant identification by header for development
 const TenantHeader = z.object({ 'x-tenant-id': z.string().uuid() });
 
+/**
+ * Admin routes for settings and calendar management.
+ * In production, these should be protected by authentication and RBAC.
+ */
 export const adminRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   app.get('/admin/settings', async (request, reply) => {
     const headers = TenantHeader.parse(request.headers as any);
