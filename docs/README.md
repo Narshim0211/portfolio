@@ -38,3 +38,16 @@ docs/             # Documentation site and guides
 - Build public endpoints with zod validation using `@salon/contracts`.
 - Add email/queue integrations, observability, and admin/public UIs.
 
+### Index
+
+- Onboarding: ONBOARDING.md
+- Architecture: architecture-overview.md
+- Security: security.md
+- Testing Strategy: testing-strategy.md
+- Setup (Local): setup-local.md
+- API Reference: api-reference.md
+- Env/Config: env-config.md
+- Worker & Queue: worker-queue.md
+- Public Wizard: public-wizard.md
+- Runbooks: runbooks.md
+
