@@ -134,7 +134,14 @@ export const publicRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
   });
 
   // Create appointment with Redis hold and exclusion constraint enforcement
-  app.post('/public/:subdomain/appointments', async (request, reply) => {
+  app.post('/public/:subdomain/appointments', {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '1 minute',
+      }
+    }
+  }, async (request, reply) => {
     const params = ParamsSchema.parse(request.params);
     const body = CreateAppointmentBody.parse(request.body);
     const idempotencyKey = (request.headers['idempotency-key'] as string | undefined) ?? body.idempotencyKey;

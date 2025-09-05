@@ -11,6 +11,7 @@ import adminRoutes from "./routes/admin";
 import adminServicesRoutes from "./routes/admin.services";
 import adminStaffRoutes from "./routes/admin.staff";
 import { registry, httpRequestsTotal } from "./metrics";
+import crypto from "node:crypto";
 
 const env = loadConfig();
 
@@ -59,6 +60,22 @@ const start = async () => {
     // Redis client (shared)
     const redis = new Redis(env.REDIS_URL);
     app.decorate("redis", redis);
+
+    // Request ID and error handler
+    app.addHook("onRequest", async (request, reply) => {
+      const headerId = request.headers["x-request-id"] as string | undefined;
+      const id = headerId || crypto.randomUUID();
+      (request as any).requestId = id;
+      reply.header("X-Request-Id", id);
+    });
+
+    app.setErrorHandler((error, request, reply) => {
+      const status = (error as any).statusCode || 500;
+      const requestId = (request as any).requestId || request.id;
+      // Log full error, respond with safe JSON
+      request.log.error({ err: error, requestId }, "request failed");
+      reply.code(status).send({ message: status >= 500 ? "Internal Server Error" : error.message, requestId });
+    });
 
     // Health endpoint
     app.get("/healthz", async () => ({ status: "ok" }));
