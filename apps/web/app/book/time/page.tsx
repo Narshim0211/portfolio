@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 function BookTimeInner() {
   const sp = useSearchParams();
@@ -47,7 +48,7 @@ function BookTimeInner() {
         <ul className="grid gap-2 grid-cols-2">
           {slots.map((s) => (
             <li key={`${s.staffId}-${s.start}`}>
-              <a className="block border rounded p-2 hover:bg-gray-50" href={`/book/details?serviceId=${serviceId}&staffId=${s.staffId}&start=${encodeURIComponent(s.start)}`}>{new Date(s.start).toLocaleTimeString()}</a>
+              <Link className="block border rounded p-2 hover:bg-gray-50" prefetch href={`/book/details?serviceId=${serviceId}&staffId=${s.staffId}&start=${encodeURIComponent(s.start)}`}>{new Date(s.start).toLocaleTimeString()}</Link>
             </li>
           ))}
         </ul>

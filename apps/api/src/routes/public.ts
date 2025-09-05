@@ -31,7 +31,7 @@ export const publicRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
       where: { tenantId: tenant.id, active: true },
       orderBy: { name: 'asc' },
     });
-
+    reply.header('Cache-Control', 'public, max-age=120');
     return ListServicesResponse.parse({ services });
   });
 
@@ -48,6 +48,7 @@ export const publicRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
     const cached = await redis.get(cacheKey);
     if (cached) {
       availabilityCacheHits.labels({ tenant: tenant.id }).inc();
+      reply.header('Cache-Control', 'public, max-age=300');
       return AvailabilityResponse.parse(JSON.parse(cached));
     }
     availabilityCacheMisses.labels({ tenant: tenant.id }).inc();

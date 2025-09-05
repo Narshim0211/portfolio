@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import helmet from "@fastify/helmet";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
+import compress from "@fastify/compress";
 import Redis from "ioredis";
 import { loadConfig } from "./config";
 import publicRoutes from "./routes/public";
@@ -51,6 +52,9 @@ const start = async () => {
       timeWindow: "1 minute",
       allowList: [],
     });
+
+    // Compression (Brotli/Gzip)
+    await app.register(compress, { global: true, brotliOptions: { quality: 5 } });
 
     // Redis client (shared)
     const redis = new Redis(env.REDIS_URL);

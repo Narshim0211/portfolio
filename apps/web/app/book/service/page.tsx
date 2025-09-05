@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useToast } from '../../../components/ui/ToastProvider';
 
 export default function BookService() {
@@ -39,7 +40,7 @@ export default function BookService() {
                 <div className="font-medium">{s.name}</div>
                 <div className="text-sm text-gray-600">{s.durationMin} min · ${(s.priceCents/100).toFixed(2)}</div>
               </div>
-              <a className="rounded bg-black text-white px-3 py-2" href={`/book/time?serviceId=${s.id}`}>Select</a>
+              <Link className="rounded bg-black text-white px-3 py-2" prefetch href={`/book/time?serviceId=${s.id}`}>Select</Link>
             </li>
           ))}
         </ul>
