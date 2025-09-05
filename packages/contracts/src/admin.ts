@@ -18,3 +18,31 @@ export const AdminSettingsResponse = z.object({
   payments: PaymentSettingsSchema,
 });
 
+// Calendar
+export const AdminCalendarQuery = z.object({
+  from: z.string().datetime(),
+  to: z.string().datetime(),
+  staffId: z.string().uuid().optional(),
+});
+
+export const AdminCalendarAppointment = z.object({
+  id: z.string().uuid(),
+  staffId: z.string().uuid(),
+  serviceId: z.string().uuid(),
+  start: z.string().datetime(),
+  end: z.string().datetime(),
+  status: z.enum(['pending_payment','confirmed','cancelled','noshow']),
+  paymentStatus: z.enum(['unpaid','paid','refunded']),
+  customerName: z.string(),
+});
+
+export const AdminCalendarResponse = z.object({
+  appointments: z.array(AdminCalendarAppointment),
+});
+
+export const MoveAppointmentBody = z.object({
+  newStaffId: z.string().uuid(),
+  newStart: z.string().datetime(),
+  keepDuration: z.boolean().default(true),
+});
+
