@@ -1,8 +1,9 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { SubdomainSchema, ListServicesResponse, MarkPaidParams, MarkPaidHeaders } from '@salon/contracts';
+import { SubdomainSchema, ListServicesResponse, AvailabilityQuery, AvailabilityResponse, CreateAppointmentBody, CreateAppointmentResponse, MarkPaidParams, MarkPaidHeaders } from '@salon/contracts';
 import { getPrisma } from '@salon/data-access';
 import { verifyOwnerSignature } from '../utils/hmac';
+import { acquireSlotHold, buildHoldKey } from '@salon/core-domain';
 
 /**
  * Public routes exposed to end-users for discovery and booking.
@@ -29,6 +30,26 @@ export const publicRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
     });
 
     return ListServicesResponse.parse({ services });
+  });
+
+  // Availability endpoint with simple cached generation
+  app.get('/public/:subdomain/availability', async (request, reply) => {
+    const params = ParamsSchema.parse(request.params);
+    const query = AvailabilityQuery.parse(request.query);
+    const prisma = getPrisma();
+    const tenant = await prisma.tenant.findFirst({ where: { subdomain: params.subdomain }, select: { id: true, tz: true } });
+    if (!tenant) return reply.code(404).send({ message: 'Tenant not found' });
+
+    const redis = request.server.redis;
+    const cacheKey = `avail:${tenant.id}:${query.serviceId}:${query.staffId ?? 'any'}:${query.date}:${tenant.tz}`;
+    const cached = await redis.get(cacheKey);
+    if (cached) return AvailabilityResponse.parse(JSON.parse(cached));
+
+    const { generateDailyAvailability } = await import('@salon/core-domain');
+    const slots = await generateDailyAvailability({ prisma, tenantId: tenant.id, serviceId: query.serviceId, staffId: query.staffId, date: query.date });
+    const response = AvailabilityResponse.parse({ slots });
+    await redis.set(cacheKey, JSON.stringify(response), 'EX', 600);
+    return response;
   });
 
   // Signed callback to mark an appointment as paid
@@ -67,6 +88,90 @@ export const publicRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
     });
 
     return reply.code(200).send({ ok: true });
+  });
+
+  // Create appointment with Redis hold and exclusion constraint enforcement
+  app.post('/public/:subdomain/appointments', async (request, reply) => {
+    const params = ParamsSchema.parse(request.params);
+    const body = CreateAppointmentBody.parse(request.body);
+    const idempotencyKey = (request.headers['idempotency-key'] as string | undefined) ?? body.idempotencyKey;
+    if (!idempotencyKey) return reply.code(400).send({ message: 'Missing Idempotency-Key' });
+
+    const prisma = getPrisma();
+    const tenant = await prisma.tenant.findFirst({ where: { subdomain: params.subdomain }, select: { id: true, paymentMode: true, externalPaymentUrl: true, paymentTtlSec: true, tz: true } });
+    if (!tenant) return reply.code(404).send({ message: 'Tenant not found' });
+
+    const service = await prisma.service.findFirst({ where: { id: body.serviceId, tenantId: tenant.id, active: true }, select: { id: true, durationMin: true, bufferBefore: true, bufferAfter: true, priceCents: true } });
+    if (!service) return reply.code(404).send({ message: 'Service not found' });
+
+    // Choose staff
+    let staffId: string | null | undefined = body.staffId ?? null;
+    if (!staffId) {
+      const staff = await prisma.staff.findFirst({ where: { tenantId: tenant.id, active: true }, select: { id: true } });
+      if (!staff) return reply.code(400).send({ message: 'No active staff available' });
+      staffId = staff.id;
+    }
+
+    const start = new Date(body.datetimeStart);
+    const end = new Date(start.getTime() + service.durationMin * 60_000);
+    const effectiveStart = new Date(start.getTime() - service.bufferBefore * 60_000);
+    const effectiveEnd = new Date(end.getTime() + service.bufferAfter * 60_000);
+
+    const redis = request.server.redis;
+    const holdKey = buildHoldKey({ tenantId: tenant.id, staffId, startIso: effectiveStart.toISOString(), endIso: effectiveEnd.toISOString() });
+    const acquired = await acquireSlotHold(redis, holdKey, 10 * 60_000, idempotencyKey);
+    if (!acquired) return reply.code(409).send({ message: 'Slot already held' });
+
+    try {
+      const appt = await prisma.$transaction(async (tx) => {
+        const created = await tx.appointment.create({
+          data: {
+            tenantId: tenant.id,
+            staffId,
+            serviceId: service.id,
+            customerName: body.customer.name,
+            customerEmail: body.customer.email,
+            customerPhone: body.customer.phone,
+            start: effectiveStart, // include buffers to enforce non-overlap
+            end: effectiveEnd,
+            status: tenant.paymentMode === 'external_required' ? 'pending_payment' : 'confirmed',
+            source: 'public',
+            paymentStatus: tenant.paymentMode === 'external_required' ? 'unpaid' : 'paid',
+            notes: body.customer.notes ?? null,
+          },
+          select: { id: true },
+        });
+        return created;
+      });
+
+      const resp: any = {
+        appointmentId: appt.id,
+        status: tenant.paymentMode === 'external_required' ? 'pending_payment' : 'confirmed',
+        payment: {
+          mode: tenant.paymentMode,
+        },
+      };
+
+      if (tenant.paymentMode === 'external_required') {
+        if (!tenant.externalPaymentUrl) return reply.code(500).send({ message: 'External payment URL not configured' });
+        const expiresAt = new Date(Date.now() + (tenant.paymentTtlSec ?? 900) * 1000).toISOString();
+        const url = new URL(tenant.externalPaymentUrl);
+        url.searchParams.set('apt', resp.appointmentId);
+        url.searchParams.set('amt', String(service.priceCents));
+        resp.payment.url = url.toString();
+        resp.payment.expiresAt = expiresAt;
+      }
+
+      // Invalidate simple availability cache for that date/staff/service
+      const dateStr = body.datetimeStart.slice(0, 10);
+      const cacheKey = `avail:${tenant.id}:${service.id}:${staffId}:${dateStr}:${tenant.tz}`;
+      await redis.del(cacheKey);
+
+      return CreateAppointmentResponse.parse(resp);
+    } catch (e: any) {
+      // Exclusion constraint overlap or other error
+      return reply.code(409).send({ message: 'Time slot no longer available' });
+    }
   });
 };
 
