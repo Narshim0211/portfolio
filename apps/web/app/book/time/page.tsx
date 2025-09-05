@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-export default function BookTime() {
+function BookTimeInner() {
   const sp = useSearchParams();
   const serviceId = sp.get('serviceId') ?? '';
   const [date, setDate] = useState(() => new Date().toISOString().slice(0,10));
@@ -46,6 +46,14 @@ export default function BookTime() {
         </ul>
       )}
     </main>
+  );
+}
+
+export default function BookTime() {
+  return (
+    <Suspense fallback={<main className="p-6">Loading…</main>}>
+      <BookTimeInner />
+    </Suspense>
   );
 }
 

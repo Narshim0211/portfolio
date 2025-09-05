@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -15,7 +16,7 @@ const Schema = z.object({
 
 type FormValues = z.infer<typeof Schema>;
 
-export default function BookDetails() {
+function BookDetailsInner() {
   const sp = useSearchParams();
   const serviceId = sp.get('serviceId') ?? '';
   const staffId = sp.get('staffId') ?? '';
@@ -49,6 +50,14 @@ export default function BookDetails() {
         <button className="rounded bg-black text-white px-4 py-2 w-fit">Continue</button>
       </form>
     </main>
+  );
+}
+
+export default function BookDetails() {
+  return (
+    <Suspense fallback={<main className="p-6">Loading…</main>}>
+      <BookDetailsInner />
+    </Suspense>
   );
 }
 
