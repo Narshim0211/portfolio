@@ -78,3 +78,9 @@ export const MarkPaidHeaders = z.object({
   "x-owner-signature": z.string(),
 });
 
+export const PublicAppointmentResponse = z.object({
+  id: IdSchema,
+  status: z.enum(["pending_payment", "confirmed", "cancelled", "noshow"]),
+  paymentStatus: z.enum(["unpaid", "paid", "refunded"]),
+});
+

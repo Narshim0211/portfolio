@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { SubdomainSchema, ListServicesResponse, AvailabilityQuery, AvailabilityResponse, CreateAppointmentBody, CreateAppointmentResponse, MarkPaidParams, MarkPaidHeaders } from '@salon/contracts';
+import { SubdomainSchema, ListServicesResponse, AvailabilityQuery, AvailabilityResponse, CreateAppointmentBody, CreateAppointmentResponse, MarkPaidParams, MarkPaidHeaders, PublicAppointmentResponse } from '@salon/contracts';
 import { getPrisma } from '@salon/data-access';
 import { verifyOwnerSignature } from '../utils/hmac';
 import { acquireSlotHold, buildHoldKey } from '@salon/core-domain';
@@ -89,6 +89,17 @@ export const publicRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
     });
 
     return reply.code(200).send({ ok: true });
+  });
+
+  // Public appointment status for polling
+  app.get('/public/:subdomain/appointments/:id', async (request, reply) => {
+    const params = MarkPaidParams.parse(request.params);
+    const prisma = getPrisma();
+    const tenant = await prisma.tenant.findFirst({ where: { subdomain: params.subdomain }, select: { id: true } });
+    if (!tenant) return reply.code(404).send({ message: 'Tenant not found' });
+    const appt = await prisma.appointment.findFirst({ where: { id: params.id, tenantId: tenant.id }, select: { id: true, status: true, paymentStatus: true } });
+    if (!appt) return reply.code(404).send({ message: 'Appointment not found' });
+    return PublicAppointmentResponse.parse(appt);
   });
 
   // Create appointment with Redis hold and exclusion constraint enforcement
