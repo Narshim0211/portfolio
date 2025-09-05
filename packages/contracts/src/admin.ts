@@ -46,3 +46,31 @@ export const MoveAppointmentBody = z.object({
   keepDuration: z.boolean().default(true),
 });
 
+// Services CRUD
+export const AdminServiceSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1),
+  durationMin: z.number().int().positive(),
+  bufferBefore: z.number().int().nonnegative().default(0),
+  bufferAfter: z.number().int().nonnegative().default(0),
+  category: z.string().optional(),
+  priceCents: z.number().int().nonnegative(),
+  active: z.boolean().default(true),
+});
+
+export const AdminServicesResponse = z.object({
+  services: z.array(AdminServiceSchema),
+});
+
+export const CreateServiceBody = z.object({
+  name: z.string().min(1),
+  durationMin: z.number().int().positive(),
+  bufferBefore: z.number().int().nonnegative().default(0),
+  bufferAfter: z.number().int().nonnegative().default(0),
+  category: z.string().optional(),
+  priceCents: z.number().int().nonnegative(),
+  active: z.boolean().default(true),
+});
+
+export const UpdateServiceBody = CreateServiceBody.partial();
+

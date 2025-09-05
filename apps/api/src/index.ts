@@ -7,6 +7,7 @@ import { loadConfig } from "./config";
 import publicRoutes from "./routes/public";
 import rawBodyPlugin from "./plugins/rawBody";
 import adminRoutes from "./routes/admin";
+import adminServicesRoutes from "./routes/admin.services";
 
 const env = loadConfig();
 
@@ -64,6 +65,7 @@ const start = async () => {
 
     // Admin APIs
     await app.register(adminRoutes);
+    await app.register(adminServicesRoutes);
 
     await app.listen({ port: env.API_PORT, host: env.API_HOST });
   } catch (err) {
