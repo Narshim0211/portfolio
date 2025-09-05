@@ -4,6 +4,7 @@ import { SubdomainSchema, ListServicesResponse, AvailabilityQuery, AvailabilityR
 import { getPrisma } from '@salon/data-access';
 import { verifyOwnerSignature } from '../utils/hmac';
 import { acquireSlotHold, buildHoldKey } from '@salon/core-domain';
+import { createPaymentExpiryQueue, createDelayedJobOptions } from '@salon/messaging';
 
 /**
  * Public routes exposed to end-users for discovery and booking.
@@ -160,6 +161,16 @@ export const publicRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
         url.searchParams.set('amt', String(service.priceCents));
         resp.payment.url = url.toString();
         resp.payment.expiresAt = expiresAt;
+
+        // Enqueue delayed expiry job
+        const redisUrl = new URL((request.server as any).redis.options?.host ? `redis://${(request.server as any).redis.options.host}:${(request.server as any).redis.options.port}` : process.env.REDIS_URL || 'redis://127.0.0.1:6379');
+        const { queue } = createPaymentExpiryQueue({
+          connection: {
+            host: redisUrl.hostname,
+            port: Number(redisUrl.port || '6379'),
+          },
+        });
+        await queue.add('expire', { tenantId: tenant.id, appointmentId: resp.appointmentId }, createDelayedJobOptions((tenant.paymentTtlSec ?? 900) * 1000));
       }
 
       // Invalidate simple availability cache for that date/staff/service
