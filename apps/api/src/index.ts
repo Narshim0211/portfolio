@@ -65,6 +65,16 @@ const start = async () => {
       return registry.metrics();
     });
 
+    // Basic HTTP metrics: count per method/route/status
+    app.addHook("onResponse", async (request, reply) => {
+      try {
+        const method = request.method;
+        const route = (request as any).routeOptions?.url || (request as any).routerPath || request.url;
+        const status = String(reply.statusCode);
+        httpRequestsTotal.labels({ method, route, status }).inc();
+      } catch {}
+    });
+
     // Raw body capture for HMAC-verified routes
     await app.register(rawBodyPlugin);
 
