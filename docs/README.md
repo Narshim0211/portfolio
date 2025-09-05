@@ -52,4 +52,7 @@ docs/             # Documentation site and guides
 - Embed Widget: embed-widget.md
 - CAPTCHA & Embed: captcha-and-embed.md
 - Runbooks: runbooks.md
+- Acceptance Tests: acceptance-tests.md
+- Deployment & DR: deployment.md
+- PRD Checklist: prd-checklist.md
 
