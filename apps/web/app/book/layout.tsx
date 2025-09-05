@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrandingProvider } from './BrandingProvider';
 
 export default function BookingLayout({ children }: { children: React.ReactNode }) {
@@ -16,10 +16,12 @@ export default function BookingLayout({ children }: { children: React.ReactNode 
           ))}
         </nav>
       </div>
-      <BrandingProvider>
-        <div className="h-1 w-full mb-4" style={{ backgroundColor: 'var(--brand-color)' }} aria-hidden="true" />
-        {children}
-      </BrandingProvider>
+      <Suspense fallback={<div className="h-1 w-full mb-4 bg-gray-200" aria-hidden="true" />}>
+        <BrandingProvider>
+          <div className="h-1 w-full mb-4" style={{ backgroundColor: 'var(--brand-color)' }} aria-hidden="true" />
+          {children}
+        </BrandingProvider>
+      </Suspense>
     </section>
   );
 }

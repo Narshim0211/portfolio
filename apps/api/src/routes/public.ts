@@ -47,6 +47,31 @@ export const publicRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
     return resp;
   });
 
+  // Embeddable widget script (ES module safe but plain JS)
+  app.get('/public/:subdomain/embed.js', async (request, reply) => {
+    const params = ParamsSchema.parse(request.params);
+    const apiBase = `${(request.protocol || 'http')}://${request.headers.host}`;
+    const js = `
+      (function(){
+        var d=document;function ready(fn){if(d.readyState!='loading'){fn()}else{d.addEventListener('DOMContentLoaded',fn)}}
+        function mount(selector){
+          var el = selector ? d.querySelector(selector) : null;
+          if(!el){ el = d.createElement('div'); d.body.appendChild(el); }
+          var iframe = d.createElement('iframe');
+          iframe.src = '${apiBase}'.replace(/\/$/,'') + '/book/service?sub=${params.subdomain}';
+          iframe.style.width='100%'; iframe.style.border='0'; iframe.setAttribute('title','Booking');
+          iframe.onload=function(){ try { iframe.style.height = Math.max(600, iframe.contentWindow.document.body.scrollHeight)+'px'; } catch(e){} };
+          el.appendChild(iframe);
+        }
+        ready(function(){ mount(); });
+        window.SalonBookingWidget = { mount: mount };
+      })();
+    `;
+    reply.header('Content-Type', 'application/javascript');
+    reply.header('Cache-Control', 'public, max-age=300');
+    return js;
+  });
+
   // Availability endpoint with simple cached generation
   app.get('/public/:subdomain/availability', async (request, reply) => {
     const params = ParamsSchema.parse(request.params);

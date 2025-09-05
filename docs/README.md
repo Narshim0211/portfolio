@@ -49,5 +49,6 @@ docs/             # Documentation site and guides
 - Env/Config: env-config.md
 - Worker & Queue: worker-queue.md
 - Public Wizard: public-wizard.md
+- Embed Widget: embed-widget.md
 - Runbooks: runbooks.md
 
