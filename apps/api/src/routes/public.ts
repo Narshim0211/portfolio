@@ -89,10 +89,22 @@ export const publicRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
       return reply.code(401).send({ message: 'Invalid signature' });
     }
 
-    await prisma.appointment.updateMany({
+    const updated = await prisma.appointment.updateMany({
       where: { id: params.id, tenantId: tenant.id },
       data: { paymentStatus: 'paid', status: 'confirmed' },
     });
+
+    if (updated.count > 0) {
+      // Fetch appointment and send confirmation email
+      const appt = await prisma.appointment.findUnique({ where: { id: params.id }, select: { customerEmail: true, customerName: true, start: true } });
+      const redisUrl = new URL((request.server as any).redis.options?.host ? `redis://${(request.server as any).redis.options.host}:${(request.server as any).redis.options.port}` : process.env.REDIS_URL || 'redis://127.0.0.1:6379');
+      const { queue: emailQ } = createEmailQueue({ connection: { host: redisUrl.hostname, port: Number(redisUrl.port || '6379') } });
+      await emailQ.add('email', {
+        to: appt?.customerEmail || '',
+        subject: 'Your appointment is confirmed',
+        html: renderBookingConfirmed({ customerName: appt?.customerName || 'Customer', datetime: appt?.start.toISOString() || '', serviceName: 'Service' }),
+      });
+    }
 
     return reply.code(200).send({ ok: true });
   });
