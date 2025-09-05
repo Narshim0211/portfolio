@@ -50,5 +50,6 @@ docs/             # Documentation site and guides
 - Worker & Queue: worker-queue.md
 - Public Wizard: public-wizard.md
 - Embed Widget: embed-widget.md
+- CAPTCHA & Embed: captcha-and-embed.md
 - Runbooks: runbooks.md
 

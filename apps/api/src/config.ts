@@ -9,6 +9,9 @@ export const EnvSchema = z.object({
   // Per-identity public booking limits per minute
   RATE_LIMIT_EMAIL_PER_MIN: z.coerce.number().default(5),
   RATE_LIMIT_PHONE_PER_MIN: z.coerce.number().default(5),
+  CAPTCHA_ENABLED: z.coerce.boolean().default(false),
+  CAPTCHA_PROVIDER: z.enum(['turnstile','recaptcha']).optional(),
+  CAPTCHA_SECRET: z.string().optional(),
 });
 
 export type AppConfig = z.infer<typeof EnvSchema>;

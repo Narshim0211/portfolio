@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react';
 import { BrandingProvider } from './BrandingProvider';
+import { EmbedMessenger } from './EmbedMessenger';
 
 export default function BookingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -18,6 +19,7 @@ export default function BookingLayout({ children }: { children: React.ReactNode 
       </div>
       <Suspense fallback={<div className="h-1 w-full mb-4 bg-gray-200" aria-hidden="true" />}>
         <BrandingProvider>
+          <EmbedMessenger />
           <div className="h-1 w-full mb-4" style={{ backgroundColor: 'var(--brand-color)' }} aria-hidden="true" />
           {children}
         </BrandingProvider>

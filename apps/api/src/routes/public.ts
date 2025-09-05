@@ -60,7 +60,9 @@ export const publicRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
           var iframe = d.createElement('iframe');
           iframe.src = '${apiBase}'.replace(/\/$/,'') + '/book/service?sub=${params.subdomain}';
           iframe.style.width='100%'; iframe.style.border='0'; iframe.setAttribute('title','Booking');
-          iframe.onload=function(){ try { iframe.style.height = Math.max(600, iframe.contentWindow.document.body.scrollHeight)+'px'; } catch(e){} };
+          function onMsg(e){ try { if(!e.data) return; if(e.data.type==='salon:resize' && e.source===iframe.contentWindow){ iframe.style.height = e.data.height+'px'; } } catch(err){} }
+          window.addEventListener('message', onMsg);
+          iframe.onload=function(){ try { iframe.contentWindow.postMessage({ type:'salon:ready' }, '*'); } catch(e){} };
           el.appendChild(iframe);
         }
         ready(function(){ mount(); });
@@ -182,6 +184,19 @@ export const publicRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
     if ((body as any).hp) {
       bookingHoneypot.labels({ tenant: tenant.id }).inc();
       return reply.code(400).send({ message: 'Bad request' });
+    }
+
+    // CAPTCHA (optional, env-driven)
+    if (process.env.CAPTCHA_ENABLED === 'true') {
+      const token = (body as any).captchaToken;
+      if (!token) return reply.code(400).send({ message: 'Missing captchaToken' });
+      try {
+        // NOTE: Replace with real provider verification (Turnstile/Recaptcha)
+        // For now, accept any non-empty token to keep integration simple in unsupported envs
+        if (token.length < 10) throw new Error('token too short');
+      } catch {
+        return reply.code(400).send({ message: 'CAPTCHA verification failed' });
+      }
     }
 
     // Per identity limits (email/phone) using in-memory counters via Redis
