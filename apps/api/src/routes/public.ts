@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { SubdomainSchema, ListServicesResponse, AvailabilityQuery, AvailabilityResponse, CreateAppointmentBody, CreateAppointmentResponse, MarkPaidParams, MarkPaidHeaders, PublicAppointmentResponse } from '@salon/contracts';
+import { SubdomainSchema, ListServicesResponse, AvailabilityQuery, AvailabilityResponse, CreateAppointmentBody, CreateAppointmentResponse, MarkPaidParams, MarkPaidHeaders, PublicAppointmentResponse, PublicBrandingResponse } from '@salon/contracts';
 import { getPrisma } from '@salon/data-access';
 import { verifyOwnerSignature } from '../utils/hmac';
 import { acquireSlotHold, buildHoldKey } from '@salon/core-domain';
@@ -33,6 +33,18 @@ export const publicRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
     });
     reply.header('Cache-Control', 'public, max-age=120');
     return ListServicesResponse.parse({ services });
+  });
+
+  // Branding for public pages
+  app.get('/public/:subdomain/branding', async (request, reply) => {
+    const params = ParamsSchema.parse(request.params);
+    const prisma = getPrisma();
+    const tenant = await prisma.tenant.findFirst({ where: { subdomain: params.subdomain } });
+    if (!tenant) return reply.code(404).send({ message: 'Tenant not found' });
+    const b = (tenant.brandingJson as any) || {};
+    const resp = PublicBrandingResponse.parse({ brandColor: b.brandColor ?? '#111827', logoUrl: b.logoUrl });
+    reply.header('Cache-Control', 'public, max-age=300');
+    return resp;
   });
 
   // Availability endpoint with simple cached generation

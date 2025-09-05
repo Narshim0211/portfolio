@@ -86,3 +86,8 @@ export const PublicAppointmentResponse = z.object({
   paymentStatus: z.enum(["unpaid", "paid", "refunded"]),
 });
 
+export const PublicBrandingResponse = z.object({
+  brandColor: z.string().min(1).default('#111827'),
+  logoUrl: z.string().url().optional(),
+});
+

@@ -1,4 +1,5 @@
 import React from 'react';
+import { BrandingProvider } from './BrandingProvider';
 
 export default function BookingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -15,7 +16,10 @@ export default function BookingLayout({ children }: { children: React.ReactNode 
           ))}
         </nav>
       </div>
-      {children}
+      <BrandingProvider>
+        <div className="h-1 w-full mb-4" style={{ backgroundColor: 'var(--brand-color)' }} aria-hidden="true" />
+        {children}
+      </BrandingProvider>
     </section>
   );
 }
