@@ -54,7 +54,7 @@ const start = async () => {
     });
 
     // Compression (Brotli/Gzip)
-    await app.register(compress, { global: true, brotliOptions: { quality: 5 } });
+    await app.register(compress, { global: true });
 
     // Redis client (shared)
     const redis = new Redis(env.REDIS_URL);
