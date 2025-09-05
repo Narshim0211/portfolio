@@ -1,11 +1,17 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 function BookSuccessInner() {
   const sp = useSearchParams();
   const apt = sp.get('apt') ?? '';
+
+  useEffect(() => {
+    try {
+      window.parent.postMessage({ type: 'salon:success', appointmentId: apt }, '*');
+    } catch {}
+  }, [apt]);
 
   function downloadICS() {
     const dt = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';

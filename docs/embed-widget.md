@@ -25,6 +25,7 @@ To embed the booking flow on any website:
   // <script src="https://api.yourapp.com/public/acmesalon/embed.js" async></script>
   // window.SalonBookingWidget.mount('#booking');
   //
+  // Events: listen to 'message' for { type:'salon:success', appointmentId } and { type:'salon:resize', height }.
   // The widget uses the same public endpoints as the booking UI.
   // You can customize style with CSS around the iframe container.
   
