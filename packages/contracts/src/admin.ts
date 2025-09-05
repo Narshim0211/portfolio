@@ -74,3 +74,35 @@ export const CreateServiceBody = z.object({
 
 export const UpdateServiceBody = CreateServiceBody.partial();
 
+// Staff CRUD & availability
+export const AdminStaffSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1),
+  tz: z.string().min(1),
+  specialties: z.array(z.string()),
+  active: z.boolean().default(true),
+});
+
+export const AdminStaffResponse = z.object({
+  staff: z.array(AdminStaffSchema),
+});
+
+export const CreateStaffBody = z.object({
+  name: z.string().min(1),
+  tz: z.string().min(1),
+  specialties: z.array(z.string()).default([]),
+  active: z.boolean().default(true),
+});
+
+export const UpdateStaffBody = CreateStaffBody.partial();
+
+export const StaffHoursBody = z.object({
+  rrule: z.string().min(5),
+  tz: z.string().min(1),
+});
+
+export const StaffTimeOffBody = z.object({
+  start: z.string().datetime(),
+  end: z.string().datetime(),
+});
+
