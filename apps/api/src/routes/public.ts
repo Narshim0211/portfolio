@@ -5,6 +5,7 @@ import { getPrisma } from '@salon/data-access';
 import { verifyOwnerSignature } from '../utils/hmac';
 import { acquireSlotHold, buildHoldKey } from '@salon/core-domain';
 import { createPaymentExpiryQueue, createDelayedJobOptions } from '@salon/messaging';
+import { availabilityCacheHits, availabilityCacheMisses, bookingAttempts, bookingHoneypot, bookingRateLimited } from '../metrics';
 
 /**
  * Public routes exposed to end-users for discovery and booking.
@@ -44,7 +45,11 @@ export const publicRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
     const redis = request.server.redis;
     const cacheKey = `avail:${tenant.id}:${query.serviceId}:${query.staffId ?? 'any'}:${query.date}:${tenant.tz}`;
     const cached = await redis.get(cacheKey);
-    if (cached) return AvailabilityResponse.parse(JSON.parse(cached));
+    if (cached) {
+      availabilityCacheHits.labels({ tenant: tenant.id }).inc();
+      return AvailabilityResponse.parse(JSON.parse(cached));
+    }
+    availabilityCacheMisses.labels({ tenant: tenant.id }).inc();
 
     const { generateDailyAvailability } = await import('@salon/core-domain');
     const slots = await generateDailyAvailability({ prisma, tenantId: tenant.id, serviceId: query.serviceId, staffId: query.staffId, date: query.date });
@@ -113,6 +118,30 @@ export const publicRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
     const tenant = await prisma.tenant.findFirst({ where: { subdomain: params.subdomain }, select: { id: true, paymentMode: true, externalPaymentUrl: true, paymentTtlSec: true, tz: true } });
     if (!tenant) return reply.code(404).send({ message: 'Tenant not found' });
 
+    bookingAttempts.labels({ tenant: tenant.id }).inc();
+
+    // Honeypot check
+    if ((body as any).hp) {
+      bookingHoneypot.labels({ tenant: tenant.id }).inc();
+      return reply.code(400).send({ message: 'Bad request' });
+    }
+
+    // Per identity limits (email/phone) using in-memory counters via Redis
+    const redis = request.server.redis;
+    const emailKey = `rl:email:${tenant.id}:${body.customer.email}`;
+    const phoneKey = `rl:phone:${tenant.id}:${body.customer.phone}`;
+    const [emailCount, phoneCount] = await redis.multi()
+      .incr(emailKey).expire(emailKey, Number(process.env.RATE_LIMIT_EMAIL_PER_MIN || '5') > 0 ? 60 : 60)
+      .incr(phoneKey).expire(phoneKey, Number(process.env.RATE_LIMIT_PHONE_PER_MIN || '5') > 0 ? 60 : 60)
+      .exec() as any;
+    const emailExceeded = Number(emailCount[1]) > Number(process.env.RATE_LIMIT_EMAIL_PER_MIN || '5');
+    const phoneExceeded = Number(phoneCount[1]) > Number(process.env.RATE_LIMIT_PHONE_PER_MIN || '5');
+    if (emailExceeded) bookingRateLimited.labels({ tenant: tenant.id, dimension: 'email' }).inc();
+    if (phoneExceeded) bookingRateLimited.labels({ tenant: tenant.id, dimension: 'phone' }).inc();
+    if (emailExceeded || phoneExceeded) {
+      return reply.code(429).send({ message: 'Too many requests' });
+    }
+
     const service = await prisma.service.findFirst({ where: { id: body.serviceId, tenantId: tenant.id, active: true }, select: { id: true, durationMin: true, bufferBefore: true, bufferAfter: true, priceCents: true } });
     if (!service) return reply.code(404).send({ message: 'Service not found' });
 
@@ -129,7 +158,6 @@ export const publicRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
     const effectiveStart = new Date(start.getTime() - service.bufferBefore * 60_000);
     const effectiveEnd = new Date(end.getTime() + service.bufferAfter * 60_000);
 
-    const redis = request.server.redis;
     const holdKey = buildHoldKey({ tenantId: tenant.id, staffId, startIso: effectiveStart.toISOString(), endIso: effectiveEnd.toISOString() });
     const acquired = await acquireSlotHold(redis, holdKey, 10 * 60_000, idempotencyKey);
     if (!acquired) return reply.code(409).send({ message: 'Slot already held' });

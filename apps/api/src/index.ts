@@ -9,6 +9,7 @@ import rawBodyPlugin from "./plugins/rawBody";
 import adminRoutes from "./routes/admin";
 import adminServicesRoutes from "./routes/admin.services";
 import adminStaffRoutes from "./routes/admin.staff";
+import { registry, httpRequestsTotal } from "./metrics";
 
 const env = loadConfig();
 
@@ -57,6 +58,12 @@ const start = async () => {
 
     // Health endpoint
     app.get("/healthz", async () => ({ status: "ok" }));
+
+    // Metrics endpoint (Prometheus exposition format)
+    app.get("/metrics", async (request, reply) => {
+      reply.header("Content-Type", registry.contentType);
+      return registry.metrics();
+    });
 
     // Raw body capture for HMAC-verified routes
     await app.register(rawBodyPlugin);

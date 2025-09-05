@@ -51,6 +51,8 @@ export const CreateAppointmentBody = z.object({
   }),
   policyAccepted: z.boolean(),
   idempotencyKey: z.string().min(8).max(128),
+  // Honeypot field for spam protection. Legitimate clients should leave empty.
+  hp: z.string().max(0).optional().or(z.literal('').optional()),
 });
 
 export const PaymentMode = z.enum([
