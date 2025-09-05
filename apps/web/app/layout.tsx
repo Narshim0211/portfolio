@@ -1,6 +1,7 @@
 import './globals.css';
 import React from 'react';
 import { Providers } from './providers';
+import { ToastProvider } from '../components/ui/ToastProvider';
 
 export const metadata = {
   title: 'Salon Admin',
@@ -11,7 +12,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-white antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </Providers>
       </body>
     </html>
   );

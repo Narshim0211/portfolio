@@ -36,7 +36,14 @@ function BookTimeInner() {
         <label>Date</label>
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="border p-2"/>
       </div>
-      {loading ? <p>Loading...</p> : (
+      {loading ? (
+        <div className="grid gap-2 grid-cols-2">
+          <div className="h-10 bg-gray-100 animate-pulse rounded" />
+          <div className="h-10 bg-gray-100 animate-pulse rounded" />
+          <div className="h-10 bg-gray-100 animate-pulse rounded" />
+          <div className="h-10 bg-gray-100 animate-pulse rounded" />
+        </div>
+      ) : (
         <ul className="grid gap-2 grid-cols-2">
           {slots.map((s) => (
             <li key={`${s.staffId}-${s.start}`}>

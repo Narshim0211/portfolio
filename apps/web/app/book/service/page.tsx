@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useToast } from '../../../components/ui/ToastProvider';
 
 export default function BookService() {
   const [services, setServices] = useState<any[]>([]);
@@ -24,7 +25,13 @@ export default function BookService() {
   return (
     <main className="space-y-4">
       <h2 className="text-xl font-medium">Choose a Service</h2>
-      {loading ? <p>Loading...</p> : (
+      {loading ? (
+        <div className="grid gap-3">
+          <div className="h-14 bg-gray-100 animate-pulse rounded" />
+          <div className="h-14 bg-gray-100 animate-pulse rounded" />
+          <div className="h-14 bg-gray-100 animate-pulse rounded" />
+        </div>
+      ) : (
         <ul className="grid gap-3">
           {services.map((s) => (
             <li key={s.id} className="border p-3 rounded flex items-center justify-between">
