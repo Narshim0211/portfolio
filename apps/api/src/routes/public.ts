@@ -4,7 +4,8 @@ import { SubdomainSchema, ListServicesResponse, AvailabilityQuery, AvailabilityR
 import { getPrisma } from '@salon/data-access';
 import { verifyOwnerSignature } from '../utils/hmac';
 import { acquireSlotHold, buildHoldKey } from '@salon/core-domain';
-import { createPaymentExpiryQueue, createDelayedJobOptions } from '@salon/messaging';
+import { createPaymentExpiryQueue, createDelayedJobOptions, createEmailQueue } from '@salon/messaging';
+import { renderBookingConfirmed, renderBookingPendingPayment } from '@salon/notifications';
 import { availabilityCacheHits, availabilityCacheMisses, bookingAttempts, bookingHoneypot, bookingRateLimited } from '../metrics';
 
 /**
@@ -210,6 +211,24 @@ export const publicRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
           },
         });
         await queue.add('expire', { tenantId: tenant.id, appointmentId: resp.appointmentId }, createDelayedJobOptions((tenant.paymentTtlSec ?? 900) * 1000));
+
+        // Send pending payment email
+        const { queue: emailQ } = createEmailQueue({ connection: { host: redisUrl.hostname, port: Number(redisUrl.port || '6379') } });
+        await emailQ.add('email', {
+          to: body.customer.email,
+          subject: 'Payment pending for your appointment',
+          html: renderBookingPendingPayment({ customerName: body.customer.name, datetime: new Date(body.datetimeStart).toLocaleString(), serviceName: 'Service' }),
+        });
+      }
+      else {
+        // Send confirmation email
+        const redisUrl = new URL((request.server as any).redis.options?.host ? `redis://${(request.server as any).redis.options.host}:${(request.server as any).redis.options.port}` : process.env.REDIS_URL || 'redis://127.0.0.1:6379');
+        const { queue: emailQ } = createEmailQueue({ connection: { host: redisUrl.hostname, port: Number(redisUrl.port || '6379') } });
+        await emailQ.add('email', {
+          to: body.customer.email,
+          subject: 'Your appointment is confirmed',
+          html: renderBookingConfirmed({ customerName: body.customer.name, datetime: new Date(body.datetimeStart).toLocaleString(), serviceName: 'Service' }),
+        });
       }
 
       // Invalidate simple availability cache for that date/staff/service

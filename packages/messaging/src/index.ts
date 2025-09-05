@@ -6,6 +6,7 @@ export type PaymentExpiryJob = {
 };
 
 export const QUEUE_PAYMENT_EXPIRY = 'payment-expiry';
+export const QUEUE_EMAIL = 'email';
 
 export interface QueueConfig {
   connection: {
@@ -36,5 +37,23 @@ export function createDelayedJobOptions(delayMs: number): JobsOptions {
     removeOnComplete: 1000,
     removeOnFail: 1000,
   };
+}
+
+export type EmailJob = {
+  to: string;
+  subject: string;
+  html: string;
+};
+
+export function createEmailQueue(config: QueueConfig) {
+  const queue = new Queue<EmailJob>(QUEUE_EMAIL, {
+    connection: config.connection,
+    prefix: config.prefix,
+  });
+  const events = new QueueEvents(QUEUE_EMAIL, {
+    connection: config.connection,
+    prefix: config.prefix,
+  });
+  return { queue, events };
 }
 

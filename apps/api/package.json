@@ -17,6 +17,7 @@
     "@salon/core-domain": "*",
     "@salon/data-access": "*",
     "@salon/messaging": "*",
+    "@salon/notifications": "*",
     "prom-client": "^15.1.3",
     "fastify": "^4.28.1",
     "ioredis": "^5.4.1",
