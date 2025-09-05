@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Role {
+  owner
+  frontdesk
+  staff
+}
+
+enum AppointmentStatus {
+  pending_payment
+  confirmed
+  cancelled
+  noshow
+}
+
+enum PaymentStatus {
+  unpaid
+  paid
+  refunded
+}
+
+enum AppointmentSource {
+  public
+  admin
+  import
+}
+
+model Tenant {
+  id            String   @id @default(uuid())
+  name          String
+  subdomain     String   @unique
+  tz            String
+  brandingJson  Json?
+  plan          String?
+  createdAt     DateTime @default(now())
+  users         User[]
+  staff         Staff[]
+  services      Service[]
+  businessHours BusinessHours[]
+  appointments  Appointment[]
+}
+
+model User {
+  id            String   @id @default(uuid())
+  tenantId      String
+  role          Role
+  email         String   @unique
+  hashedPassword String
+  twoFactor     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  staff         Staff?
+}
+
+model Staff {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String?  @unique
+  name      String
+  tz        String
+  specialties String[]
+  active    Boolean  @default(true)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+  timeOff   TimeOff[]
+  appts     Appointment[]
+}
+
+model Service {
+  id            String   @id @default(uuid())
+  tenantId      String
+  name          String
+  durationMin   Int
+  bufferBefore  Int      @default(0)
+  bufferAfter   Int      @default(0)
+  category      String?
+  priceCents    Int      @default(0)
+  active        Boolean  @default(true)
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  appointments  Appointment[]
+}
+
+model BusinessHours {
+  id        String   @id @default(uuid())
+  tenantId  String
+  staffId   String?
+  rrule     String
+  tz        String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  staff     Staff?   @relation(fields: [staffId], references: [id])
+}
+
+model TimeOff {
+  id      String   @id @default(uuid())
+  staffId String
+  start   DateTime
+  end     DateTime
+  staff   Staff    @relation(fields: [staffId], references: [id])
+}
+
+model Appointment {
+  id            String             @id @default(uuid())
+  tenantId      String
+  staffId       String
+  serviceId     String
+  customerName  String
+  customerEmail String
+  customerPhone String
+  start         DateTime
+  end           DateTime
+  status        AppointmentStatus  @default(confirmed)
+  source        AppointmentSource  @default(public)
+  paymentStatus PaymentStatus      @default(unpaid)
+  notes         String?
+  createdAt     DateTime           @default(now())
+
+  tenant   Tenant  @relation(fields: [tenantId], references: [id])
+  staff    Staff   @relation(fields: [staffId], references: [id])
+  service  Service @relation(fields: [serviceId], references: [id])
+
+  @@index([tenantId, staffId, start, end])
+}
+

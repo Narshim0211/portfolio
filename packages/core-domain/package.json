@@ -1,0 +1,22 @@
+{
+  "name": "@salon/core-domain",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "ioredis": "^5.4.1",
+    "@salon/data-access": "*",
+    "zod": "^3.23.8",
+    "date-fns": "^3.6.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "rimraf": "^5.0.7"
+  }
+}
+

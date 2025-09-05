@@ -1,0 +1,25 @@
+{
+  "name": "salon-platform",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm -ws run build",
+    "typecheck": "tsc -b",
+    "lint": "eslint .",
+    "dev:api": "npm --workspace apps/api run dev",
+    "db:up": "docker compose up -d postgres redis",
+    "db:down": "docker compose down",
+    "db:migrate": "npm --workspace packages/data-access run migrate:dev",
+    "db:generate": "npm --workspace packages/data-access run generate"
+  },
+  "devDependencies": {
+    "eslint": "^9.6.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4"
+  }
+}
+
