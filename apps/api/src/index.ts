@@ -6,6 +6,7 @@ import Redis from "ioredis";
 import { loadConfig } from "./config";
 import publicRoutes from "./routes/public";
 import rawBodyPlugin from "./plugins/rawBody";
+import adminRoutes from "./routes/admin";
 
 const env = loadConfig();
 
@@ -60,6 +61,9 @@ const start = async () => {
 
     // Public booking APIs
     await app.register(publicRoutes);
+
+    // Admin APIs
+    await app.register(adminRoutes);
 
     await app.listen({ port: env.API_PORT, host: env.API_HOST });
   } catch (err) {
