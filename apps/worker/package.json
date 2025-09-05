@@ -1,0 +1,22 @@
+{
+  "name": "@salon/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "@salon/data-access": "*",
+    "@salon/messaging": "*"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.5.4"
+  }
+}
+

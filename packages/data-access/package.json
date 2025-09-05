@@ -1,0 +1,23 @@
+{
+  "name": "@salon/data-access",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist",
+    "generate": "prisma generate",
+    "migrate:dev": "prisma migrate dev --name init --create-only",
+    "migrate:apply": "prisma migrate deploy"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.18.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.18.0",
+    "typescript": "^5.5.4",
+    "rimraf": "^5.0.7"
+  }
+}
+
